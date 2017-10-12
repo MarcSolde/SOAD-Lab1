@@ -1,0 +1,249 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="en"><head>
+  <title>A Minimal User-Level Thread Package</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="Author" content="Douglas W. Jones">
+  <meta name="Language" content="English">
+  <meta name="editor" content="/usr/bin/vi">
+  
+   <meta name="Description" content="A portable thread package for use in C programs">
+  
+  
+  
+  <style type="text/css">
+   BODY { margin-left: 3%; margin-right: 3%; }
+   H2.SQUAT { margin-top: 0.4em; margin-bottom: 0.25em; }
+   H3.SQUAT { margin-top: 0.3em; margin-bottom: 0.2em; }
+   H4.SQUAT { margin-top: 0.2em; margin-bottom: 0.15em; }
+   H5.SQUAT { margin-top: 0.17em; margin-bottom: 0.15em; }
+   * { line-height: 1.1 }
+   P.SQUAT { margin-top: 0.25em; margin-bottom: 0.15em; }
+   UL.SQUAT { margin-top: 0.25em; margin-bottom: 0.15em; }
+   EM.O { font-style: normal; text-decoration: overline; }
+   EM.U { font-style: normal; text-decoration: underline; }
+   EM.S { font-style: normal; text-decoration: line-through; }
+   A { text-decoration: none; }
+   A.I { font-style: italic; text-decoration: none; }
+   SUP { vertical-align: 0; position: relative; bottom: 1ex; }
+   SUB { vertical-align: 0; position: relative; top: 0.8ex; }
+   TABLE.BOXY { border: 0; padding: 0; border-spacing: 0;
+                border-collapse: collapse; }
+   TD.BOX { border: solid; border-width: thin; border-color: DimGray;
+	      text-align: center; }
+   TD.BOXTT { border: solid; border-width: thin; border-color: DimGray;
+	      font-family: monospace; text-align: center; }
+   TD.TT { font-family: monospace; text-align: left; }
+   TD.TTSPACE { font-family: monospace; text-align: left; color: white }
+   TD.SHADE { background: Silver; text-align: center; }
+   CAPTION { padding-top: 6px; }
+   DIV.HEADBOX { border: groove; border-width: 2px; background: #F0F0E0; padding-top: 1%; padding-bottom: 1%; padding-left: 5px; }
+   DIV.HEADBOX P { margin-top: 0.8em; margin-bottom: 0.8em; }
+   DIV.HEADBOX H1 { margin-top: 0.2em; margin-bottom: 0.4em; }
+   DIV.HEADBOX H2 { margin-top: 0.2em; margin-bottom: 0.4em; }
+   DIV.INDENT { border: none; padding-left: 1em }
+   DIV.INVISIBLE { font-size: 3px; letter-spacing: -5px; color: white; background: white; }
+   DIV.INVISIBLE A:link { color: white; }
+   DIV.INVISIBLE A:visited { color: white; }
+   DIV.INVISIBLE A:active { color: white; }
+   DIV.invisible A:active { color: white; background: white; }
+  </style>
+ </head>
+ <body link="#0000CC" bgcolor="#FFFFFF" text="#000000" vlink="#880088" alink="#880088">
+  <div class="HEADBOX">
+   
+   <table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td>&nbsp;&nbsp;</td><td>
+    
+     <h1>A Minimal User-Level Thread Package</h1>
+    
+    
+    <p>
+    
+     Part of <a href="http://www.cs.uiowa.edu/%7Ejones/opsys/">
+      
+      22C:116, Advanced Operating Systems On-Line Collection
+      
+     </a>
+     <br>
+     
+    
+    
+     by
+     <a href="http://www.cs.uiowa.edu/%7Ejones/">Douglas W. Jones</a>
+     
+     <br>
+    
+    
+    <a href="http://www.uiowa.edu/">
+     T<small>HE</small> U<small>NIVERSITY</small>
+    <small>OF</small> I<small>OWA</small></a>
+    <a href="http://www.cs.uiowa.edu/">Department of Computer Science</a>
+    
+    
+    
+   </p></td></tr></tbody></table>
+    
+  </div>
+ 
+
+
+
+<h2>General</h2>
+<p>
+The machine-independent thread package described here is written in C
+and may be incorporated into C or C++ programs to allow use of non-preemptive
+multithreaded programming.  This package was developed as a pedagogical
+example, and has been used for instructional purposes under a variety of
+UNIX (including Linux and MacOS X) and Windows implementations.  It should
+also work under CodeWarrior 7.0 on MacOS 9; some 'improvement' put into
+MacOS 10.3 broke it.
+</p><p>
+The machine independence of this package has limits!  It makes reasonable
+assumptions for 32-bit architectures, but not all machines are guaranteed
+to follow these assumptions.  When compiling on modern 64-bit machines
+this package may work if you force the compiler to use 32-bit pointers.
+The code needs to be rewritten to use modern and more portable C
+programming conventions, but even this offers no guarantees.
+</p><p>
+</p><hr>
+<p>
+</p><h2>User Interface</h2>
+
+<h3>Setup</h3>
+
+<pre>void thread_manager_init()
+void thread_launch( int size, void (* proc)(int), int param )
+void thread_manager_start()
+</pre>
+<p>
+Prior to using any thread management routines, the thread manager must
+be initialized by a call to <tt>thread_manager_init</tt>.  This clears the
+ready list and also reverse engineers the context switching mechanism of
+the host machine.
+</p><p>
+A call to <tt>thread_launch()</tt> will add one new thread to the ready list.
+This thread will run in a stack of the given <tt>size</tt> and when it runs,
+it will call <tt>proc(param)</tt> exactly once prior to termination.
+The code of <tt>proc</tt> is referred to as the body of the thread.
+</p><p>
+As soon as an initial ready list has been created,
+<tt>thread_manager_start()</tt> may be called to begin the execution of the
+bodies of all of the threads in the ready list.  This routine does not return
+until there are no ready threads, either because all threads have
+terminated or because there is a deadlock.  The thread manager does not
+distinguish between these two situations!
+</p><p>
+Threads may perform any
+computation, call any procedures, or address any static variables in the
+program, so long as the dynamic storage requirement for automatic variables
+and procedure linkage does not overflow the stack of the calling thread.
+Threads may call <tt>thread_launch()</tt> to create other threads.
+
+</p><p>
+</p><h3>Within a Thread</h3>
+
+<pre>void thread_relinquish()
+void thread_free( void * ptr)
+void thread_exit()
+</pre>
+<p>
+When a thread calls <tt>thread_relinquish()</tt>, its state is changed from
+running to ready, and then some running thread (usually some other thread)
+is selected and run.
+</p><p>
+The <tt>thread_free()</tt> routine is entirely compatable with the
+<tt>free()</tt> routine of standard C; it is included here because
+a call to <tt>free()</tt> does not always function correctly when called
+from within a thread. The problem is caused by error checking
+in <tt>free()</tt> that is incompatable with the thread package although
+quite reasonable in any other context.
+</p><p>
+When a thread is finished, its body may return or it may call
+<tt>thread_exit()</tt>; these are equivalent.  In either case, that
+thread's stack is deallocated and some other thread is run.  If no threads
+remain, the thread package terminates.
+
+</p><p>
+</p><h3>Utility Routines</h3>
+
+<pre>void thread_startup_report()  -- a diagnostic tool
+void thread_safety_check()    -- check for stack overflow
+</pre>
+<p>
+A call to <tt>thread_startup_report()</tt> will yield a report of the
+results of the thread manager's work reverse engineering the host
+context switching facilities.  These are based on the standard C library
+routines <tt>setjmp()</tt> and <tt>longjmp()</tt>; as a result, they
+depend on both the host hardware and the compiler being used.
+</p><p>
+A call to <tt>thread_safety_check()</tt> will check to see that the
+current thread's stack is within the bounds established when it was
+launched.  This is primarily intended as a debugging aid.
+
+</p><p>
+</p><h3>Synchronization</h3>
+
+<pre>void thread_semaphore_init( struct semaphore * s, int v )
+void thread_wait( struct thread_semaphore * s )
+void thread_signal( struct thread_semaphore * s )
+</pre>
+<p>
+Thread semaphores may be allocated freely as components of user data
+structures and they may be initialized at any time prior to use with calls
+to <tt>thread_semaphore_init()</tt>.  Once a semaphore is initialized,
+threads may perform the standard semaphore operations <i>wait</i> and
+<i>signal</i> using calls to <tt>thread_wait()</tt> and
+<tt>thread_signal()</tt>.  Semaphores are inexpensive, occupying only
+three words of memory.
+
+</p><p>
+</p><hr>
+
+<h2>Deficiencies and Limitations</h2>
+<p>
+This thread manager has been successfully tested for the example demonstration
+application under HP-UX using the gcc (GNU C), the CC (HP's C++) and
+c89 (HP's ANSI C) compilers.  It works correctly under
+MacOS X (Objective-C) versions prior to 10.3, and Linux (GNU C).
+The source code requires
+no changes for any of these machines, despite the fact that the stack grows
+up on some, down on others, and the fact that the size and structure of the
+thread context description varies from 24 bytes on the Intel 486 to 200 bytes
+on the HP PA RISC architecture and 768 bytes on the Power PC (Macintosh).
+</p><p>
+This thread manager has missing pieces!  Specifically, it does not include
+preemptive scheduling nor does it include support for parallel execution
+on a real multiprocessor.  These features were left out deliberately!  This
+thread package is intended as the base for student assignments in an
+introductory operating system class with where the emphasis is on how
+processes are implemented on a uniprocessor.  Another interesting extension,
+suggested by Bryan Christianson, is to add thread deletion, so that one
+thread may force the immediate termination of another.
+
+</p><hr>
+
+<h2>Obtaining a Copy</h2>
+<p>
+The C source code, <tt><a href="http://homepage.cs.uiowa.edu/%7Ejones/opsys/threads/source.txt">threads.c</a></tt>, for this thread
+package is available, along with a header file,
+<tt><a href="http://homepage.cs.uiowa.edu/%7Ejones/opsys/threads/header.txt">threads.h</a></tt>, defining
+the interface to the package.  Take a copy and play with it, but please
+keep the attributions of original authorship and add your attribution
+as a change notice in the program header!
+</p><p>
+<a href="http://homepage.cs.uiowa.edu/%7Ejones/opsys/threads/example.txt">An example</a> demonstrating the use of this package
+is also available.
+<a href="http://homepage.cs.uiowa.edu/%7Ejones/opsys/threads/queuer.txt">A second example</a> demonstrating the use of semaphores
+and producer-consumer synchronization is also available.
+</p><p>
+<b>Warning:</b> The source code for this package gets quite arcane!  The
+mechanisms by which it manages to be machine independent are fascinating
+enough that they have, over the years, distracted many students from the
+assignments they were supposed to be doing with this package.
+</p><p>
+
+</p><hr>
+
+
+
+</body></html>
