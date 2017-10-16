@@ -1,0 +1,11 @@
+Thread startup study results
+  Stack grows down
+  Local variable offset from AR base = 0
+  Jump buffer fields subject to modification:
+  Jump buffer size: 200
+A5
+A4
+B5
+A3
+Segmentation fault (core dumped)
+
